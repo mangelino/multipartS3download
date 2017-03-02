@@ -35,7 +35,7 @@ function start_child_processes(size, chunk_size, params) {
 			'upper': current_size+chunk_size*chunks_per_child,
 			'size': chunk_size}
 		var msg = { 'params': params, 'chunks' : chunks}
-		c.on('message', done())
+		c.on('message', done)
 		c.send(msg)
 		chunks_started += chunks_per_child
 		current_size += chunk_size*chunks_per_child

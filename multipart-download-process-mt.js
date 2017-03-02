@@ -25,7 +25,7 @@ function download(params, chunks) {
 
 	var done = makeCounter(Math.round((chunks.upper-chunks.lower)/chunks.size), function() { 
 		var end_time = process.hrtime(start_time); 
-		console.log("Download done for process "+process.pid+" in sec "+end_time);
+		console.log("Partial download done for process "+process.pid+" in sec "+end_time);
 		process.send({'result':'Done'})
 	});
 

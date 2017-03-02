@@ -18,7 +18,8 @@ var start_time;
 
 var done = makeCounter(ncpus, function() { 
 	var end_time = process.hrtime(start_time); 
-	console.log("Download done for process %d in %f sec: ", process.pid, end_time);
+	console.log("Total download done in "+end_time);
+	process.exit(0);
 });
 
 function start_child_processes(size, chunk_size, params) {

@@ -25,11 +25,11 @@ function download(params, chunks) {
 
 	var done = makeCounter(Math.round((chunks.upper-chunks.lower)/chunks.size), function() { 
 		var end_time = process.hrtime(start_time); 
-		console.log("Download done for process %d in %f sec: ", process.pid, end_time);
+		console.log("Download done for process "+process.pid+" in sec "+end_time);
 		process.send({'result':'Done'})
 	});
 
-	console.log("Start download");
+	//console.log("Start download");
 	do  { 
 		var upper = contentSize+chunks.size-1; 
 		if (upper>chunks.upper) 
@@ -53,7 +53,7 @@ function download(params, chunks) {
 		j++; 
 		contentSize+=chunks.size;
 	} while (contentSize<chunks.upper);
-	console.log("Started %d fetchers", j)
+	console.log("PID %d: Started %d fetchers", process.pid,j)
 }
 
 

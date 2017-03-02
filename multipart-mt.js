@@ -6,12 +6,28 @@ var ncpus = os.cpus().length;
 
 var s3 = new aws.S3()
 
+function makeCounter(limit, callback) {
+	return function() {
+		if (--limit === 0) {
+			callback();
+		}
+	}
+}
+
+var start_time;
+
+var done = makeCounter(ncpus, function() { 
+	var end_time = process.hrtime(start_time); 
+	console.log("Download done for process %d in %f sec: ", process.pid, end_time);
+	process.send({'result':'Done'})
+});
 
 function start_child_processes(size, chunk_size, params) {
 	var chunks_count = Math.round(size/chunk_size);
 	var chunks_per_child = Math.round(chunks_count/ncpus);
 	var chunks_started = 0;
 	var current_size=0;
+	start_time = process.hrtime();
 
 	while (chunks_started < chunks_count-chunks_per_child) {
 		var c = cp.fork(__dirname+"/multipart-download-process-mt.js");
@@ -19,6 +35,7 @@ function start_child_processes(size, chunk_size, params) {
 			'upper': current_size+chunk_size*chunks_per_child,
 			'size': chunk_size}
 		var msg = { 'params': params, 'chunks' : chunks}
+		c.on('message', done())
 		c.send(msg)
 		chunks_started += chunks_per_child
 		current_size += chunk_size*chunks_per_child

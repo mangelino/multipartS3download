@@ -25,7 +25,8 @@ function download(params, chunks) {
 
 	var done = makeCounter(Math.round((chunks.upper-chunks.lower)/chunks.size), function() { 
 		var end_time = process.hrtime(start_time); 
-		console.log("Download done in: "+end_time);
+		console.log("Download done for process %d in %f sec: ", process.pid, end_time);
+		process.send({'result':'Done'})
 	});
 
 	console.log("Start download");
@@ -33,7 +34,7 @@ function download(params, chunks) {
 		var upper = contentSize+chunks.size-1; 
 		if (upper>chunks.upper) 
 			upper=chunks.upper; 
-		console.log('%s: %d-%d',process.pid,contentSize,upper); 
+		//console.log('%s: %d-%d',process.pid,contentSize,upper); 
 		params.Range = "bytes="+contentSize+"-"+upper; 
 		var f = function() {
 			s3.getObject(this.p, 
@@ -43,7 +44,7 @@ function download(params, chunks) {
 					error=true;
 					process.exit(1);
 				} else { 
-					console.log("Completed chunk %d", this.k); 
+					//console.log("Completed chunk %d", this.k); 
 					done();
 				}
 			}.bind({k:j}));

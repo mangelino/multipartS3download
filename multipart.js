@@ -5,6 +5,7 @@ const os = require('os')
 const fs=require('fs')
 const url = require('url')
 const path = require('path')
+const filesize = require('filesize')
 //const ProgressBar = require('ascii-progress');
 const ProgressBar = require('progress')
 var ncpus = os.cpus().length
@@ -41,16 +42,23 @@ function download(params, chunks, fd) {
 	bar.tick(0);
 
 	var fetchers_count=Math.ceil(chunks.upper/chunks.size);
-
+	var net_end_time;
 	var done =  makeCounter(fetchers_count, function() { 
+		var net_end_time = process.hrtime(start_time); 
+		//bar.terminate();
+		//console.log(`Completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
+		//fs.close(fd);
+	});
+
+	var file_done = makeCounter(fetchers_count, function() { 
 		var end_time = process.hrtime(start_time); 
 		bar.terminate();
-		console.log(`Completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
+		console.log(`Download completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
 		//fs.close(fd);
 	});
 
 
-	var task = function(idx, args, task_done) {
+	var task = function(idx, args) {
 		//The idx indicates the chunk to download from the params base
 		var lower = args.lower+idx*args.size;
 		var upper = Math.min(lower+args.size-1, args.upper);
@@ -72,11 +80,12 @@ function download(params, chunks, fd) {
 							}
 							writing = false;
 							bar.tick(written);
+							file_done();
 						});
 					} else {
 						bar.tick(data.Body.length);
 					}
-					task_done();
+					//done();
 				}
 			}.bind({lower:lower}));
 		}.bind({p:params});
@@ -84,7 +93,7 @@ function download(params, chunks, fd) {
 	}
 	
 	for (var k=0; k<fetchers_count; k++) {
-		task(k, chunks, done)
+		task(k, chunks)
 	}
 }
 
@@ -118,7 +127,7 @@ program.arguments('<s3object>')
 			}
 			else {
 				var size = parseInt(data.ContentLength);
-				console.log("Total size = %d", size);
+				console.log("Total size = %s", filesize(size));
 				var chunk_size = 2000000;
 				if (program.size) {
 					chunk_size = parseInt(program.size);
@@ -127,7 +136,7 @@ program.arguments('<s3object>')
 				if (program.test)
 					test = true;
 				
-				console.log(`Chunk size = ${chunk_size}, Num procs: ${ncpus}`);
+				console.log(`Chunk size = ${filesize(chunk_size)}`);
 				var fd;
 				if (!test) {
 					fd = fs.openSync(outputfile, 'w');

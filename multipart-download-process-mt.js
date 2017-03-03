@@ -35,9 +35,10 @@ function download(params, chunks, fd) {
 	};
 
 	var fetchersSync = function(tot, batch, task, args, callback) {
-		var done = makeCounter(Math.min(batch, tot), () => {
+		var fetchersCount = Math.min(batch, tot);
+		var done = makeCounter(fetchersCount, () => {
 			//console.log(`${chunks.seq}: Batch done ${Math.min(batch,tot)}`)
-			for (i=0; i<Math.min(batch, tot); i++) {
+			for (i=0; i<fetchersCount; i++) {
 					fs.appendFileSync(fname, data_chunk[i]);
 			}
 			//tar -console.log(`${chunks.seq}: Data appended`)
@@ -111,6 +112,7 @@ function download(params, chunks, fd) {
 					error=true;
 					process.exit(1);
 				} else { 
+					//console.log(data);
 					data_chunk[idx] = data.Body;
 					process.send({'type':'tick','seq':args.seq ,'size':data.Body.length})
 					task_done();

@@ -7,11 +7,10 @@
     "test": "test"
   },
   "dependencies": {
-    "ascii-progress": "^1.0.5",
     "aws-sdk": "^2.22.0",
     "child_process": "^1.0.2",
     "commander": "^2.9.0",
-    "multi-progress": "^2.0.0",
+    "filesize": "^3.5.5",
     "progress": "^1.1.8"
   },
   "devDependencies": {},

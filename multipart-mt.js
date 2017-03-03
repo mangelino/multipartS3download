@@ -97,8 +97,8 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 
 program.arguments('<s3object>')
 	.arguments('<outputfile>')
-	.option('-s, --size', 'The size of the chunks to download')
-	.option('-p, --processes', 'The number of processes. Will be limited to the number of cpus')
+	.option('-s, --size <size>', 'The size of the chunks to download')
+	.option('-p, --processes <processes>', 'The number of processes. Will be limited to the number of cpus')
 	.action((s3object, outputfile) => {
 		var error_message;
 		//console.log('Getting file size'+file);
@@ -129,7 +129,10 @@ program.arguments('<s3object>')
 				if (program.size) {
 					chunk_size = program.size;
 				}
-				console.log(`Chunk size = ${chunk_size}`)
+				if (program.processes) {
+					ncpus = program.processes;
+				}
+				console.log(`Chunk size = ${chunk_size}, Num procs: ${ncpus}`)
 				fs.mkdtemp('/tmp/mtp-mt-', (err, folder) => {
 					if (err) {
 						console.log(err);

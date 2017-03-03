@@ -72,7 +72,7 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 		// 	total: upper-lower
 		// }))	;
 
-		bars.push(multiProgress.newBar('  [:bar] :percent :etas', {
+		bars.push(multi.newBar('  [:bar] :percent :etas', {
 			complete: '=',
 			incomplete: ' ',
 			width: 40,

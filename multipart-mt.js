@@ -35,7 +35,7 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 	
 
 
-	var done = makeCounter(ncpus, function() { 
+	var done = makeCounter(Math.min(ncpus, Math.round(size/chunk_size)), function() { 
 		// Joins the partial files
 		console.log('Merging temp files');
 		fs.writeFileSync(outputfile, new Buffer(0));

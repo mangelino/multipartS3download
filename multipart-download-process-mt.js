@@ -39,22 +39,59 @@ function download(params, chunks, fd) {
 		}*/
 		process.send({'type':'done'})
 	};
-	
-	var fetchers = function(tot, batch, task, args, callback) {
+
+	var fetchersSync = function(tot, batch, task, args, callback) {
 		var done = makeCounter(Math.min(batch, tot), () => {
 			//console.log(`${chunks.seq}: Batch done ${Math.min(batch,tot)}`)
 			for (i=0; i<Math.min(batch, tot); i++) {
 					fs.appendFileSync(fname, data_chunk[i]);
 			}
-			//console.log(`${chunks.seq}: Data appended`)
+			console.log(`${chunks.seq}: Data appended`)
 			tot -= batch;
 			if (tot > 0) {
 				// The args base must be incremented for each batch
 				//console.log(`${chunks.seq}: Next batch`)
 				args.lower += args.size*batch;
-				fetchers(tot, batch, task, args, callback);
+				fetchersSync(tot, batch, task, args, callback);
 			} else {
 				callback();
+			}
+		});
+
+		//console.log(`${chunks.seq}: starting ${Math.min(tot, batch)} asynch tasks`);
+		for (k=0; k<Math.min(batch, tot); k++) {
+			task(k, args, done);
+		}
+	}
+	
+	var fetchers = function(tot, batch, task, args, callback) {
+		var done = makeCounter(Math.min(batch, tot), () => {
+			//console.log(`${chunks.seq}: Batch done ${Math.min(batch,tot)}`)
+			
+			var fappend=function(i, max, callback) {
+				if (i<max) {
+					console.log(`written ${args.seq} ${i}`)
+					fs.appendFile(fname, data_chunk[i], () => {
+						i++;
+						fappend(i, max, callback);
+					});
+				} else {
+					if (callback)
+						callback();
+				}
+			}
+			//fs.appendFile(fname, data_chunk[i], ;
+			//console.log(`${chunks.seq}: Data appended`)
+			tot -= batch;
+			if (tot > 0) {
+				fappend(0, Math.min(batch, tot), ()=>{console.log("Written")});
+				// The args base must be incremented for each batch
+				//console.log(`${chunks.seq}: Next batch`)
+				args.lower += args.size*batch;
+				fetchers(tot, batch, task, args, callback);
+			} else {
+				fappend(0, Math.min(batch, tot),
+				callback());
 			}
 		});
 
@@ -89,7 +126,7 @@ function download(params, chunks, fd) {
 		f();
 	}
 	//console.log(`${chunks.seq}: Total of  ${chunks_n} chunks\n ${chunks.lower}-${chunks.upper}`);
-	fetchers(chunks_n, chunks.fetchers, task, chunks, process_done);
+	fetchersSync(chunks_n, chunks.fetchers, task, chunks, process_done);
 
 }
 

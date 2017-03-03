@@ -1,0 +1,35 @@
+{
+  "name": "s3-multipart-download",
+  "version": "1.0.0",
+  "description": "A javascript tool to download files from S3 using multithreading",
+  "main": "multipart-mt.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.22.0",
+    "child_process": "^1.0.2",
+    "commander": "^2.9.0",
+    "multi-progress": "^2.0.0",
+    "progress": "^1.1.8"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mangelino/multipartS3download.git"
+  },
+  "keywords": [
+    "S3",
+    "multithreading",
+    "cli"
+  ],
+  "author": "M. Angelino",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mangelino/multipartS3download/issues"
+  },
+  "homepage": "https://github.com/mangelino/multipartS3download#readme"
+}

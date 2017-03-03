@@ -1,3 +1,0 @@
-
-process.stdout.write("ABC", ()=>{})
-

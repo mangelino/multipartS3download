@@ -29,10 +29,9 @@ function makeCounter(limit, callback) {
 var data_chunk = [];
 
 function download(params, chunks, fd) {
-	var j=0, contentSize=chunks.lower;
 	var start_time = process.hrtime();
-	var chunks_n = Math.ceil((chunks.upper-chunks.lower)/chunks.size);
 	var writing = false;
+
 	var bar = new ProgressBar('  [:bar] :percent :etas', {
 			complete: '=',
 			incomplete: ' ',
@@ -40,29 +39,16 @@ function download(params, chunks, fd) {
 			total: chunks.upper-chunks.lower
 		});
 	bar.tick(0);
-	var process_done = function() { 
+
+	var fetchers_count=Math.ceil(chunks.upper/chunks.size);
+
+	var done =  makeCounter(fetchers_count, function() { 
 		var end_time = process.hrtime(start_time); 
 		bar.terminate();
 		console.log(`Completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
 		//fs.close(fd);
-	};
+	});
 
-	var fetchersSync = function(tot, batch, task, args, callback) {
-		var fetchersCount = Math.min(batch, tot);
-		var done = makeCounter(fetchersCount, () => {
-			tot -= batch;
-			if (tot > 0) {
-				args.lower += args.size*batch;
-				fetchersSync(tot, batch, task, args, callback);
-			} else {
-				callback();
-			}
-		});
-
-		for (k=0; k<Math.min(batch, tot); k++) {
-			task(k, args, done);
-		}
-	}
 
 	var task = function(idx, args, task_done) {
 		//The idx indicates the chunk to download from the params base
@@ -92,8 +78,10 @@ function download(params, chunks, fd) {
 		}.bind({p:params});
 		f();
 	}
-	//console.log(`Total of  ${chunks_n} chunks\n Range: ${chunks.lower}-${chunks.upper}`);
-	fetchersSync(chunks_n, chunks.fetchers, task, chunks, process_done);
+	
+	for (var k=0; k<fetchers_count; k++) {
+		task(k, chunks, done)
+	}
 }
 
 

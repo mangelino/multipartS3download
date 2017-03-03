@@ -4,6 +4,7 @@ const cp = require('child_process')
 const os = require('os')
 const fs=require('fs')
 const url = require('url')
+const path = require('path')
 //const ProgressBar = require('ascii-progress');
 const multiProgress = require('multi-progress')
 var ncpus = os.cpus().length
@@ -14,6 +15,7 @@ var multi = new multiProgress();
 var start_time;
 
 var fetchers = 10;
+var temp = '/tmp/';
 
 function makeCounter(limit, callback) {
 	return function() {
@@ -110,6 +112,7 @@ program.arguments('<s3object>')
 	.option('-s, --size <size>', 'The size of the chunks to download')
 	.option('-p, --processes <processes>', 'The number of processes. Will be limited to the number of cpus')
 	.option('-f, --fetchers <fetchers>', 'The number of asynchronous fetchers')
+	.option('-t, --temp <temp>', 'Location of the temp files')
 	.action((s3object, outputfile) => {
 		var error_message;
 		//console.log('Getting file size'+file);
@@ -146,8 +149,12 @@ program.arguments('<s3object>')
 				if (program.fetchers) {
 					fetchers = parseInt(program.fetchers);
 				}
+				if (program.temp) {
+					temp = program.temp;
+				}
+
 				console.log(`Chunk size = ${chunk_size}, Num procs: ${ncpus}`)
-				fs.mkdtemp('/tmp/mtp-mt-', (err, folder) => {
+				fs.mkdtemp(path.join(temp, 'mtp-mt-'), (err, folder) => {
 					if (err) {
 						console.log(err);
 						process.exit(1);

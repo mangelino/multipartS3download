@@ -1,6 +1,7 @@
 var aws=require('aws-sdk')
 var cp = require('child_process');
 var os = require('os');
+var fs=require('fs')
 
 var ncpus = os.cpus().length;
 
@@ -22,36 +23,46 @@ var done = makeCounter(ncpus, function() {
 	process.exit(0);
 });
 
-function start_child_processes(size, chunk_size, params) {
+function start_child_processes(size, chunk_size, params, folder) {
 	var chunks_count = Math.round(size/chunk_size);
 	var chunks_per_child = Math.round(chunks_count/ncpus);
 	var chunks_started = 0;
 	var current_size=0;
 	start_time = process.hrtime();
+	var k=0;
 
 	while (chunks_started < chunks_count-chunks_per_child) {
 		var c = cp.fork(__dirname+"/multipart-download-process-mt.js");
 		var chunks = { 'lower': current_size,
 			'upper': current_size+chunk_size*chunks_per_child,
-			'size': chunk_size}
+			'size': chunk_size,
+			'seq': k,
+			'folder': folder 
+			}
 		var msg = { 'params': params, 'chunks' : chunks}
 		c.on('message', done)
 		c.send(msg)
 		chunks_started += chunks_per_child
 		current_size += chunk_size*chunks_per_child
+		k++;
 	}
 	var c = cp.fork(__dirname+"/multipart-download-process-mt.js");
 	var chunks = { 'lower': current_size,
 			'upper': size,
-			'size': chunk_size}
+			'size': chunk_size,
+			'seq': k,
+			'folder': folder}
 	var msg = { 'params': params, 'chunks' : chunks}
 	c.send(msg)
+	c.on('message', done);
+	
+
 	console.log('All child process started');
 }
 
 var params = {
 			Bucket: 'emr-workshop-maan',
-			Key: 'input/mz.tgz'
+			Key: 'input/scala.tgz'
 		}
 console.log('Getting file size'+params);
 s3.headObject(params, function(err, data) { 
@@ -62,8 +73,13 @@ s3.headObject(params, function(err, data) {
 	else {
 		var size = parseInt(data.ContentLength);
 		console.log("Total size= %d", size);
-		var chunk_size = 10000000;
-		start_child_processes(size, chunk_size, params);
+		var chunk_size = 2000000;
+		//fd
+		fs.mkdtemp('/tmp/mtp-mt-', (err, folder) => {
+			if (err) throw err;
+			console.log('Writing to '+folder)
+			start_child_processes(size, chunk_size, params, folder);
+		});
 		
 
 	}

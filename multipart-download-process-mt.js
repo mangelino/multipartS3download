@@ -1,4 +1,5 @@
 var aws=require('aws-sdk')
+var fs=require('fs')
 
 var s3 = new aws.S3()
 
@@ -6,7 +7,15 @@ var s3 = new aws.S3()
 process.on('message', function(msg) {
 	params = msg.params;
 	chunks = msg.chunks;
-	download(params, chunks)
+	folder = chunks.folder;
+	var fname = folder+'/'+'chunk'+chunks.seq
+	fs.writeFileSync(fname, new Buffer(chunks.upper-chunks.lower))
+	var fd = fs.openSync(fname, 'w');
+	download(params, chunks,fd);
+	
+	
+	
+	
 })
 
 
@@ -19,13 +28,16 @@ function makeCounter(limit, callback) {
 	}
 }
 
-function download(params, chunks) {
+var data_chunk = []
+
+function download(params, chunks, fd) {
 	var j=0, contentSize=chunks.lower;
 	var start_time = process.hrtime();
 
 	var done = makeCounter(Math.round((chunks.upper-chunks.lower)/chunks.size), function() { 
 		var end_time = process.hrtime(start_time); 
 		console.log("Partial download done for process "+process.pid+" in sec "+end_time);
+		console.log(data_chunk[0])
 		process.send({'result':'Done'})
 	});
 
@@ -45,10 +57,13 @@ function download(params, chunks) {
 					process.exit(1);
 				} else { 
 					//console.log("Completed chunk %d", this.k); 
+					data_chunk[this.k] = data.Body;
+					fs.writeSync(fd, data.Body, 0, data.Body.length, this.lowerBound-chunks.lower)
+					console.log(`Fetcher ${this.k}`)
 					done();
 				}
 			}.bind({k:j}));
-		}.bind({p:params});
+		}.bind({p:params, lowerBound:contentSize});
 		f();
 		j++; 
 		contentSize+=chunks.size;

@@ -25,18 +25,19 @@ function makeCounter(limit, callback) {
 
 
 function start_child_processes(size, chunk_size, params, temp_folder, outputfile) {
+	ncpus = Math.min(ncpus, Math.round(size/chunk_size));
 	var chunks_count = Math.round(size/chunk_size);
 	var chunks_per_child = Math.round(chunks_count/ncpus);
-	var chunks_started = 0;
 	var current_size=0;
 	start_time = process.hrtime();
 	var k=0;
 	var bars = Array()
 	
 
-
-	var done = makeCounter(Math.min(ncpus, Math.round(size/chunk_size)), function() { 
+	
+	var done = makeCounter(ncpus, function() { 
 		// Joins the partial files
+		bars[ncpus-1].terminate();
 		console.log('Merging temp files');
 		fs.writeFileSync(outputfile, new Buffer(0));
 		for (var i=0; i<ncpus; i++) {
@@ -78,6 +79,7 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 			width: 40,
 			total: upper-lower
 		}))
+
 		bars[seq].tick(0);
 		var completed = function(msg) {
 			if (msg.type === 'tick') {
@@ -92,11 +94,8 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 		child.send(msg)
 	}
 
-	while (chunks_started < chunks_count-chunks_per_child) {
-
+	while (current_size+chunk_size*chunks_per_child < size) {		
 		spawnChild(current_size, current_size+chunk_size*chunks_per_child, k);
-
-		chunks_started += chunks_per_child
 		current_size += chunk_size*chunks_per_child
 		k++;
 	}

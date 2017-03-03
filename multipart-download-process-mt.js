@@ -28,15 +28,9 @@ function download(params, chunks, fd) {
 	var start_time = process.hrtime();
 	var chunks_n = Math.round((chunks.upper-chunks.lower)/chunks.size);
 	var fname = chunks.folder+'/'+'chunk'+chunks.seq
+	
 	var process_done = function() { 
 		var end_time = process.hrtime(start_time); 
-		//console.log("Partial download done for process "+process.pid+" in sec "+end_time);
-		/*folder = chunks.folder;
-		var fname = folder+'/'+'chunk'+chunks.seq
-		//console.log(`Writing ${data_chunk.length} blocks to disk to ${fname}`)
-		for (var i in data_chunk) {
-			fs.appendFileSync(fname, data_chunk[i]);
-		}*/
 		process.send({'type':'done'})
 	};
 
@@ -46,7 +40,7 @@ function download(params, chunks, fd) {
 			for (i=0; i<Math.min(batch, tot); i++) {
 					fs.appendFileSync(fname, data_chunk[i]);
 			}
-			console.log(`${chunks.seq}: Data appended`)
+			//tar -console.log(`${chunks.seq}: Data appended`)
 			tot -= batch;
 			if (tot > 0) {
 				// The args base must be incremented for each batch

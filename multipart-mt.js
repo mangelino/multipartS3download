@@ -25,9 +25,9 @@ function makeCounter(limit, callback) {
 
 
 function start_child_processes(size, chunk_size, params, temp_folder, outputfile) {
-	ncpus = Math.min(ncpus, Math.round(size/chunk_size));
-	var chunks_count = Math.round(size/chunk_size);
-	var chunks_per_child = Math.round(chunks_count/ncpus);
+	ncpus = Math.min(ncpus, Math.ceil(size/chunk_size));
+	var chunks_count = Math.ceil(size/chunk_size);
+	var chunks_per_child = Math.ceil(chunks_count/ncpus);
 	var current_size=0;
 	start_time = process.hrtime();
 	var k=0;

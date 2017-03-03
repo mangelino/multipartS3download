@@ -26,7 +26,7 @@ var data_chunk = [];
 function download(params, chunks, fd) {
 	var j=0, contentSize=chunks.lower;
 	var start_time = process.hrtime();
-	var chunks_n = Math.round((chunks.upper-chunks.lower)/chunks.size);
+	var chunks_n = Math.ceil((chunks.upper-chunks.lower)/chunks.size);
 	var fname = chunks.folder+'/'+'chunk'+chunks.seq
 	
 	var process_done = function() { 

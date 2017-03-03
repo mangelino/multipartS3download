@@ -12,12 +12,6 @@ var ncpus = os.cpus().length
 
 const s3 = new aws.S3()
 
-
-var start_time;
-
-var fetchers = 10;
-var temp = '/tmp/';
-
 function makeCounter(limit, callback) {
 	return function() {
 		if (--limit === 0) {
@@ -25,8 +19,6 @@ function makeCounter(limit, callback) {
 		}
 	}
 }
-
-var data_chunk = [];
 
 function download(params, chunks, fd) {
 	var start_time = process.hrtime();
@@ -84,13 +76,13 @@ function download(params, chunks, fd) {
 		}.bind({p:params});
 		f();
 	}
-	
+	// Starts all async fetcher tasks
 	for (var k=0; k<fetchers_count; k++) {
 		task(k, chunks)
 	}
 }
 
-
+//TODO: Add access key and secret as optional parameters
 program.arguments('<s3object>')
 	.arguments('<outputfile>')
 	.option('-s, --size <size>', 'The size of the chunks to download')
@@ -102,17 +94,16 @@ program.arguments('<s3object>')
 		if (s3uri.protocol !== 's3:') {
 			error_message = `Not a valid S3 object ${s3object}`
 		}
-
 		if (error_message) {
 			console.log(error_message);
 			process.exit(1);
 		}
-
+		// Paramter object for S3 client
 		var params = {
 			Bucket: s3uri.host,
 			Key: s3uri.path.substr(1)
 		}
-		//console.log(params);
+
 		s3.headObject(params, function(err, data) { 
 			if (err) {
 				console.log(`Error getting object from S3: ${err.code}`);

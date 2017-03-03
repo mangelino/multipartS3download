@@ -65,13 +65,15 @@ function download(params, chunks, fd) {
 					process.exit(1);
 				} else { 
 					writing = true;
-					fs.write(fd,data.Body, 0, data.Body.length, this.lower, (err, written, buffer) => {
-						if (err) {
-							throw err;
-						}
-						writing = false;
-						bar.tick(written);
-					});
+					if (fd) {
+						fs.write(fd,data.Body, 0, data.Body.length, this.lower, (err, written, buffer) => {
+							if (err) {
+								throw err;
+							}
+							writing = false;
+							bar.tick(written);
+						});
+					}
 					task_done();
 				}
 			}.bind({lower:lower}));
@@ -88,8 +90,7 @@ function download(params, chunks, fd) {
 program.arguments('<s3object>')
 	.arguments('<outputfile>')
 	.option('-s, --size <size>', 'The size of the chunks to download')
-	.option('-f, --fetchers <fetchers>', 'The number of asynchronous fetchers')
-	.option('-t, --temp <temp>', 'Location of the temp files')
+	.option('-t, --test', 'Test mode - does not write to disk')
 	.action((s3object, outputfile) => {
 		var error_message;
 		//console.log('Getting file size'+file);
@@ -120,21 +121,20 @@ program.arguments('<s3object>')
 				if (program.size) {
 					chunk_size = parseInt(program.size);
 				}
-				if (program.fetchers) {
-					fetchers = parseInt(program.fetchers);
-				}
-				if (program.temp) {
-					temp = program.temp;
-				}
-
+				var test = false;
+				if (program.test)
+					test = true;
+				
 				console.log(`Chunk size = ${chunk_size}, Num procs: ${ncpus}`);
-				var fd = fs.openSync(outputfile, 'w');
-				fs.writeSync(fd,['\0'],0,1,size-1);			
+				var fd;
+				if (!test) {
+					fd = fs.openSync(outputfile, 'w');
+					fs.writeSync(fd,['\0'],0,1,size-1);
+				}			
 				chunks = {
 					'lower': 0, 
 					'upper': size,
-					'size': chunk_size,
-					'fetchers': fetchers
+					'size': chunk_size
 				}
 				download(params, chunks, fd);				
 			}

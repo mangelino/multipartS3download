@@ -35,6 +35,7 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 
 	var done = makeCounter(ncpus, function() { 
 		// Joins the partial files
+		console.log('Merging temp files');
 		fs.writeFileSync(outputfile, new Buffer(0));
 		for (var i=0; i<ncpus; i++) {
 			fs.appendFileSync(outputfile, fs.readFileSync(`${temp_folder}/chunk${i}`))
@@ -128,7 +129,7 @@ program.arguments('<s3object>')
 				if (program.size) {
 					chunk_size = program.size;
 				}
-				//fd
+				console.log(`Chunk size = ${chunk_size}`)
 				fs.mkdtemp('/tmp/mtp-mt-', (err, folder) => {
 					if (err) {
 						console.log(err);

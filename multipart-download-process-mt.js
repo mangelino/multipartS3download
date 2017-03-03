@@ -70,7 +70,7 @@ function download(params, chunks, fd) {
 		contentSize+=chunks.size;
 	} while (contentSize<chunks.upper);
 	//bar.tick(0);
-	//console.log("PID %d: Started %d fetchers", process.pid,j)
+	console.log("PID %d: Started %d fetchers", process.pid,j)
 }
 
 

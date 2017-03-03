@@ -4,14 +4,16 @@ const cp = require('child_process')
 const os = require('os')
 const fs=require('fs')
 const url = require('url')
-const ProgressBar = require('multi-progress');
+const ProgressBar = require('ascii-progress');
 
-const ncpus = os.cpus().length
+var ncpus = os.cpus().length
 
 const s3 = new aws.S3()
 
-var multi = new ProgressBar();
+//var multi = new ProgressBar();
 var start_time;
+
+var fetchers = 10;
 
 function makeCounter(limit, callback) {
 	return function() {
@@ -41,11 +43,13 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 			fs.appendFileSync(outputfile, fs.readFileSync(`${temp_folder}/chunk${i}`))
 		}
 		// Remove the temp_folder
+		
 		fs.readdirSync(temp_folder).forEach((file, index) => {
 			var curPath = temp_folder+'/'+file;
 			fs.unlinkSync(curPath);
 		})
 		fs.rmdirSync(temp_folder);
+		
 		var end_time = process.hrtime(start_time); 
 		console.log("Total download done in "+end_time);
 		process.exit(0);
@@ -58,13 +62,13 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 			'upper': upper,
 			'size': chunk_size,
 			'seq': seq,
-			'folder': temp_folder 
+			'folder': temp_folder,
+			'fetchers': fetchers 
 			}
 
-		bars.push(multi.newBar('  downloading [:bar] :percent :etas', {
-			complete: '=',
-			incomplete: ' ',
-			width: 10,
+		bars.push(new ProgressBar({schema: ' [:bar] :percent :etas',
+			filled: '=',
+			width: 40,
 			total: upper-lower
 		}))	;
 		bars[seq].tick(0);
@@ -99,6 +103,7 @@ program.arguments('<s3object>')
 	.arguments('<outputfile>')
 	.option('-s, --size <size>', 'The size of the chunks to download')
 	.option('-p, --processes <processes>', 'The number of processes. Will be limited to the number of cpus')
+	.option('-f, --fetchers <fetchers>', 'The number of asynchronous fetchers')
 	.action((s3object, outputfile) => {
 		var error_message;
 		//console.log('Getting file size'+file);
@@ -127,10 +132,13 @@ program.arguments('<s3object>')
 				console.log("Total size = %d", size);
 				var chunk_size = 2000000;
 				if (program.size) {
-					chunk_size = program.size;
+					chunk_size = parseInt(program.size);
 				}
 				if (program.processes) {
-					ncpus = program.processes;
+					ncpus = parseInt(program.processes);
+				}
+				if (program.fetchers) {
+					fetchers = parseInt(program.fetchers);
 				}
 				console.log(`Chunk size = ${chunk_size}, Num procs: ${ncpus}`)
 				fs.mkdtemp('/tmp/mtp-mt-', (err, folder) => {

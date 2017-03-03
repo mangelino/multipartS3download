@@ -73,6 +73,8 @@ function download(params, chunks, fd) {
 							writing = false;
 							bar.tick(written);
 						});
+					} else {
+						bar.tick(data.Body.length);
 					}
 					task_done();
 				}

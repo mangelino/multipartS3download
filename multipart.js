@@ -26,13 +26,13 @@ function makeCounter(limit, callback) {
 	}
 }
 
-
 var data_chunk = [];
 
 function download(params, chunks, fd) {
 	var start_time = process.hrtime();
 	var writing = false;
-
+	// progress is not a top library, would have preferred ansi-progress but 
+	// does not work in ssh remote terminals
 	var bar = new ProgressBar('  [:bar] :percent :etas', {
 			complete: '=',
 			incomplete: ' ',
@@ -43,20 +43,14 @@ function download(params, chunks, fd) {
 
 	var fetchers_count=Math.ceil(chunks.upper/chunks.size);
 	var net_end_time;
-	var done =  makeCounter(fetchers_count, function() { 
-		var net_end_time = process.hrtime(start_time); 
-		//bar.terminate();
-		//console.log(`Completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
-		//fs.close(fd);
-	});
 
 	var file_done = makeCounter(fetchers_count, function() { 
+		fs.close(fd);
 		var end_time = process.hrtime(start_time); 
 		bar.terminate();
 		console.log(`Download completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
-		//fs.close(fd);
+		
 	});
-
 
 	var task = function(idx, args) {
 		//The idx indicates the chunk to download from the params base
@@ -85,7 +79,6 @@ function download(params, chunks, fd) {
 					} else {
 						bar.tick(data.Body.length);
 					}
-					//done();
 				}
 			}.bind({lower:lower}));
 		}.bind({p:params});

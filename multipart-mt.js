@@ -4,13 +4,13 @@ const cp = require('child_process')
 const os = require('os')
 const fs=require('fs')
 const url = require('url')
-const ProgressBar = require('ascii-progress');
-
+//const ProgressBar = require('ascii-progress');
+const multiProgress = require('multi-progress')
 var ncpus = os.cpus().length
 
 const s3 = new aws.S3()
 
-//var multi = new ProgressBar();
+var multi = new multiProgress();
 var start_time;
 
 var fetchers = 10;
@@ -66,11 +66,18 @@ function start_child_processes(size, chunk_size, params, temp_folder, outputfile
 			'fetchers': fetchers 
 			}
 
-		bars.push(new ProgressBar({schema: ' [:bar] :percent :etas',
-			filled: '=',
+		// bars.push(new ProgressBar({schema: ' [:bar] :percent :etas',
+		// 	filled: '=',
+		// 	width: 40,
+		// 	total: upper-lower
+		// }))	;
+
+		bars.push(multiProgress.newBar('  [:bar] :percent :etas', {
+			complete: '=',
+			incomplete: ' ',
 			width: 40,
 			total: upper-lower
-		}))	;
+		}))
 		bars[seq].tick(0);
 		var completed = function(msg) {
 			if (msg.type === 'tick') {

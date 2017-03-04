@@ -14,15 +14,3 @@ The `<size>` optional parameter specifies the maximum chunk size in bytes that i
 ## Security
 
 You must have the `~/.aws/credentials` and the `~/.aws/config` correctly setup or pass the `accessKey` and `secretAccessKey` as a parameter to the command.
-
-
-## Multiprocess client
-
-There is also a multiprocess client which might work on your system. 
-It can be used as 
-
-```bash
-node multipart-mp.js <s3object> <output> [-s <size>] [-f <fecthers>] [-p <processes>]
-```
-
-Where `<processes>` indicates the number of processes to spawn, limited by the number of CPUs on the machine.

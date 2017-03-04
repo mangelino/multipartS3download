@@ -24,7 +24,6 @@ function makeCounter(limit, callback) {
 
 function download(params, chunks, fd) {
 	var start_time = process.hrtime();
-	var writing = false;
 	// progress is not a top library, would have preferred ansi-progress but 
 	// does not work in ssh remote terminals
 	var bar = new ProgressBar('  [:bar] :percent :etas', {
@@ -35,8 +34,7 @@ function download(params, chunks, fd) {
 		});
 	bar.tick(0);
 
-	var fetchers_count=Math.ceil(chunks.upper/chunks.size);
-	var net_end_time;
+	var fetchers_count=Math.ceil((chunks.upper-chunks.lower)/chunks.size);
 
 	var file_done = makeCounter(fetchers_count, function() { 
 		fs.closeSync(fd);
@@ -60,13 +58,11 @@ function download(params, chunks, fd) {
 					error=true;
 					process.exit(1);
 				} else { 
-					writing = true;
 					if (fd) {
 						fs.write(fd,data.Body, 0, data.Body.length, this.lower, (err, written, buffer) => {
 							if (err) {
 								throw err;
 							}
-							writing = false;
 							bar.tick(written);
 							file_done();
 						});

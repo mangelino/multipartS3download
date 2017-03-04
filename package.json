@@ -12,7 +12,8 @@
     "child_process": "^1.0.2",
     "commander": "^2.9.0",
     "filesize": "^3.5.5",
-    "progress": "^1.1.8"
+    "progress": "^1.1.8",
+    "promise": "^7.1.1"
   },
   "devDependencies": {},
   "scripts": {

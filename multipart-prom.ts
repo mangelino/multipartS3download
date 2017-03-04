@@ -7,11 +7,18 @@ import * as fs from 'fs';
 import * as url from 'url';
 import * as path from 'path';
 import * as filesize from 'filesize';
+import * as Promise from 'promise'
 //import * as ProgressBar from 'ascii-progress';;
 import * as ProgressBar from 'progress';
 import { AWSError, S3, Config, Credentials, config } from "aws-sdk";
 
 let s3 = new S3()
+
+interface IChunks {
+    lower: number,
+    upper: number,
+    size: number
+}
 
 function makeCounter(limit: number, callback) {
 	return function() {
@@ -21,7 +28,7 @@ function makeCounter(limit: number, callback) {
 	}
 }
 
-function download(params, chunks, fd: number): void {
+function download(params: S3.GetObjectRequest, chunks: IChunks, fd: number): void {
 	let start_time = process.hrtime();
 	// progress is not a top library, would have preferred ansi-progress but 
 	// does not work in ssh remote terminals
@@ -32,7 +39,7 @@ function download(params, chunks, fd: number): void {
         console.log(`Max 100 fetchers, using Chunk size: ${filesize(chunks.size)}`)
     }
 
-	let bar = new ProgressBar('  [:bar] :percent :etas', {
+    let bar = new ProgressBar('  [:bar] :percent :etas', {
 			complete: '=',
 			incomplete: ' ',
 			width: 60,
@@ -40,46 +47,57 @@ function download(params, chunks, fd: number): void {
 		});
 	bar.tick(0);
 
-	let file_done = makeCounter(fetchers_count, function() { 
-		fs.closeSync(fd);
-		let end_time = process.hrtime(start_time); 
-		bar.terminate();
-		console.log(`Download completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
-		
-	});
+	
+    function writeAsync(fd, data: Buffer, offset:number ) {
+        return new Promise(function (resolve, reject) {
+            fs.write(fd, data, 0, data.length, offset, function(err, written, buffer) {
+                if (err) reject(err);
+                resolve(written);
+            });
+        })
+    }
 
-	let task = function(idx: number, args) {
-		//The idx indicates the chunk to download from the params base
-		let lower = args.lower+idx*args.size;
-		let upper = Math.min(lower+args.size-1, args.upper);
+    function getS3ObjectAsync(params: S3.GetObjectRequest, offset: number) {
+        return new Promise(function (resolve, reject) {
+            let req = s3.getObject(params, function (err, data) {
+                if (err) return reject(err);
+                if (fd) {
+                    writeAsync(fd, data.Body as Buffer, offset)
+                        .then((res) => {
+                            bar.tick(res);
+                            resolve(res)
+                        })
+                        .catch((err) => {
+                            reject(err)
+                        })
+                }
+            })
+            req.on('retry', function(response) {
+                console.error(response.error.message + ":" + response.error.retryable);
+            }) 
+        })
+    }
 
+    let tasks = []
+    for (let k=0; k<fetchers_count; k++) {
+        let lower = chunks.lower+k*chunks.size;
+		let upper = Math.min(lower+chunks.size-1, chunks.upper);
 		params.Range = "bytes="+lower+"-"+upper;
-		let p = params;
+        tasks.push(getS3ObjectAsync(params, lower));
+	}
 
-		s3.getObject(p, 
-			function (err: AWSError, data) { 
-				if (err) {
-					console.log(err.code); 
-					process.exit(1);
-				} else { 
-					if (fd) {
-						fs.write(fd,data.Body as Buffer, 0, (data.Body as Buffer).length, lower, (err, written, buffer) => {
-							if (err) {
-								throw err;
-							}
-							bar.tick(written);
-							file_done();
-						});
-					} else {
-						bar.tick((data.Body as Buffer).length);
-					}
-				}
-			});
-	}
-	// Starts all async fetcher tasks
-	for (let k=0; k<fetchers_count; k++) {
-		task(k, chunks)
-	}
+    Promise.all(tasks)
+        .then((res) => {
+            fs.closeSync(fd);
+            let end_time = process.hrtime(start_time); 
+            bar.terminate();
+            console.log(`Download completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
+        })
+        .catch((err) => {
+            console.error(err);
+            process.exit(1);
+        }) 
+	
 }
 
 program

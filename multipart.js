@@ -1,3 +1,5 @@
+#! /usr/bin/env node 
+
 const program = require('commander')
 const aws=require('aws-sdk')
 const cp = require('child_process')
@@ -10,7 +12,7 @@ const filesize = require('filesize')
 const ProgressBar = require('progress')
 var ncpus = os.cpus().length
 
-const s3 = new aws.S3()
+var s3 = new aws.S3()
 
 function makeCounter(limit, callback) {
 	return function() {
@@ -37,7 +39,7 @@ function download(params, chunks, fd) {
 	var net_end_time;
 
 	var file_done = makeCounter(fetchers_count, function() { 
-		fs.close(fd);
+		fs.closeSync(fd);
 		var end_time = process.hrtime(start_time); 
 		bar.terminate();
 		console.log(`Download completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
@@ -83,21 +85,41 @@ function download(params, chunks, fd) {
 }
 
 //TODO: Add access key and secret as optional parameters
-program.arguments('<s3object>')
-	.arguments('<outputfile>')
-	.option('-s, --size <size>', 'The size of the chunks to download')
+program
+	.version('1.0.0')
+	.usage('[options] <s3object> <outputfile>')
+	.arguments('<s3object> <outputfile>')
+	.option('-s, --size <size>', 'The size of the chunks to download', parseInt)
 	.option('-t, --test', 'Test mode - does not write to disk')
+	.option('-c, --credentials <credentials>', 'accessKey/secretAccessKey for the access to AWS S3')
 	.action((s3object, outputfile) => {
+		if (typeof s3object === 'undefined') {
+			console.error('An S3 URI must be provided');
+			process.exit(1);
+		}
 		var error_message;
 		//console.log('Getting file size'+file);
 		var s3uri = url.parse(s3object);
 		if (s3uri.protocol !== 's3:') {
 			error_message = `Not a valid S3 object ${s3object}`
 		}
+		if (program.credentials) {
+			var c = program.credentials.split('/');
+			if (c.length != 2) {
+				error_message = 'Invalid credential. Must be specified as <accessKey>/<secretAccessKey>'
+			} else {
+				var aws_cred = new aws.Credentials(c[0], c[1]);
+				//var config = new aws.Config();
+				//config.credentials = aws_cred;
+				aws.config.credentials = aws_cred;
+				s3 = new aws.S3()
+			}
+		}
 		if (error_message) {
-			console.log(error_message);
+			console.error(error_message);
 			process.exit(1);
 		}
+		
 		// Paramter object for S3 client
 		var params = {
 			Bucket: s3uri.host,
@@ -114,7 +136,7 @@ program.arguments('<s3object>')
 				console.log("Total size = %s", filesize(size));
 				var chunk_size = 2000000;
 				if (program.size) {
-					chunk_size = parseInt(program.size);
+					chunk_size = program.size;
 				}
 				var test = false;
 				if (program.test)
@@ -134,7 +156,8 @@ program.arguments('<s3object>')
 				download(params, chunks, fd);				
 			}
 		});
-	})
-	.parse(process.argv);
+	});
+
+program.parse(process.argv);
 
 

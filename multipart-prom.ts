@@ -72,9 +72,9 @@ function download(params: S3.GetObjectRequest, chunks: IChunks, fd: number): voi
                         })
                 }
             })
-            req.on('retry', function(response) {
-                console.error(response.error.message + ":" + response.error.retryable);
-            }) 
+            // req.on('retry', function(response) {
+            //     console.error(response.error.message + ":" + response.error.retryable);
+            // }) 
         })
     }
 

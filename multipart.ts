@@ -92,7 +92,9 @@ function download(params: S3.GetObjectRequest, chunks: IChunks, fd: number): voi
 
     Promise.all(tasks)
         .then((res) => {
-            fs.closeSync(fd);
+			if (fd) {
+            	fs.closeSync(fd);
+			}
             let end_time = process.hrtime(start_time); 
             bar.terminate();
 			let time_secs = (end_time[0]*1000000000+end_time[1])/1000000000;

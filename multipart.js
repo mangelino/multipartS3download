@@ -76,7 +76,9 @@ function download(params, chunks, fd) {
     }
     Promise.all(tasks)
         .then(function (res) {
-        fs.closeSync(fd);
+        if (fd) {
+            fs.closeSync(fd);
+        }
         var end_time = process.hrtime(start_time);
         bar.terminate();
         var time_secs = (end_time[0] * 1000000000 + end_time[1]) / 1000000000;

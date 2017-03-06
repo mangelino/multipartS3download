@@ -91,7 +91,8 @@ function download(params: S3.GetObjectRequest, chunks: IChunks, fd: number): voi
             fs.closeSync(fd);
             let end_time = process.hrtime(start_time); 
             bar.terminate();
-            console.log(`Download completed in ${end_time}s at ${chunks.upper/1024./1024/end_time[0]} Mibps`)
+			let time_secs = (end_time[0]*1000000000+end_time[1])/1000000000;
+            console.log(`Download completed in ${time_secs.toFixed(2)}s at ${filesize(chunks.upper/time_secs)}ps`)
         })
         .catch((err) => {
             console.error(err);

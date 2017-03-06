@@ -24,7 +24,7 @@ function download(params, chunks, fd) {
     var fetchers_count = Math.ceil((chunks.upper - chunks.lower) / chunks.size);
     if (fetchers_count > 100) {
         fetchers_count = 100;
-        chunks.size = Math.ceil((chunks.uper - chunks.lower) / fetchers_count);
+        chunks.size = Math.ceil((chunks.upper - chunks.lower) / fetchers_count);
         console.log("Max 100 fetchers, using Chunk size: " + filesize(chunks.size));
     }
     var bar = new ProgressBar('  [:bar] :percent :etas', {
@@ -58,9 +58,9 @@ function download(params, chunks, fd) {
                     });
                 }
             });
-            req.on('retry', function (response) {
-                console.error(response.error.message + ":" + response.error.retryable);
-            });
+            // req.on('retry', function(response) {
+            //     console.error(response.error.message + ":" + response.error.retryable);
+            // }) 
         });
     }
     var tasks = [];
@@ -75,7 +75,8 @@ function download(params, chunks, fd) {
         fs.closeSync(fd);
         var end_time = process.hrtime(start_time);
         bar.terminate();
-        console.log("Download completed in " + end_time + "s at " + chunks.upper / 1024. / 1024 / end_time[0] + " Mibps");
+        var time_secs = (end_time[0] * 1000000000 + end_time[1]) / 1000000000;
+        console.log("Download completed in " + time_secs.toFixed(2) + "s at " + filesize(chunks.upper / time_secs) + "ps");
     })["catch"](function (err) {
         console.error(err);
         process.exit(1);

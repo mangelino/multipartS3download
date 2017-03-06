@@ -65,12 +65,16 @@ function download(params: S3.GetObjectRequest, chunks: IChunks, fd: number): voi
                     writeAsync(fd, data.Body as Buffer, offset)
                         .then((res) => {
                             bar.tick(res);
-                            resolve(res)
+                            resolve(res);
                         })
                         .catch((err) => {
                             reject(err)
                         })
                 }
+				else {
+					bar.tick((data.Body as Buffer).length);
+                    resolve();
+				}
             })
             // req.on('retry', function(response) {
             //     console.error(response.error.message + ":" + response.error.retryable);

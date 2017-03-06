@@ -57,6 +57,10 @@ function download(params, chunks, fd) {
                         reject(err);
                     });
                 }
+                else {
+                    bar.tick(data.Body.length);
+                    resolve();
+                }
             });
             // req.on('retry', function(response) {
             //     console.error(response.error.message + ":" + response.error.retryable);

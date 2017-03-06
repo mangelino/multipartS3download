@@ -5,6 +5,7 @@ var program = require("commander");
 var fs = require("fs");
 var url = require("url");
 var filesize = require("filesize");
+var Promise = require("promise");
 //import * as ProgressBar from 'ascii-progress';;
 var ProgressBar = require("progress");
 var aws_sdk_1 = require("aws-sdk");
@@ -33,44 +34,53 @@ function download(params, chunks, fd) {
         total: chunks.upper - chunks.lower
     });
     bar.tick(0);
-    var file_done = makeCounter(fetchers_count, function () {
+    function writeAsync(fd, data, offset) {
+        return new Promise(function (resolve, reject) {
+            fs.write(fd, data, 0, data.length, offset, function (err, written, buffer) {
+                if (err)
+                    reject(err);
+                resolve(written);
+            });
+        });
+    }
+    function getS3ObjectAsync(params, offset) {
+        return new Promise(function (resolve, reject) {
+            var req = s3.getObject(params, function (err, data) {
+                if (err)
+                    return reject(err);
+                if (fd) {
+                    writeAsync(fd, data.Body, offset)
+                        .then(function (res) {
+                        bar.tick(res);
+                        resolve(res);
+                    })["catch"](function (err) {
+                        reject(err);
+                    });
+                }
+            });
+            // req.on('retry', function(response) {
+            //     console.error(response.error.message + ":" + response.error.retryable);
+            // }) 
+        });
+    }
+    var tasks = [];
+    for (var k = 0; k < fetchers_count; k++) {
+        var lower = chunks.lower + k * chunks.size;
+        var upper = Math.min(lower + chunks.size - 1, chunks.upper);
+        params.Range = "bytes=" + lower + "-" + upper;
+        tasks.push(getS3ObjectAsync(params, lower));
+    }
+    Promise.all(tasks)
+        .then(function (res) {
         fs.closeSync(fd);
         var end_time = process.hrtime(start_time);
         bar.terminate();
         var time_secs = (end_time[0] * 1000000000 + end_time[1]) / 1000000000;
         console.log("Download completed in " + time_secs.toFixed(2) + "s at " + filesize(chunks.upper / time_secs) + "ps");
+    })["catch"](function (err) {
+        console.error(err);
+        process.exit(1);
     });
-    var task = function (idx, args) {
-        //The idx indicates the chunk to download from the params base
-        var lower = args.lower + idx * args.size;
-        var upper = Math.min(lower + args.size - 1, args.upper);
-        params.Range = "bytes=" + lower + "-" + upper;
-        var p = params;
-        s3.getObject(p, function (err, data) {
-            if (err) {
-                console.log(err.code);
-                process.exit(1);
-            }
-            else {
-                if (fd) {
-                    fs.write(fd, data.Body, 0, data.Body.length, lower, function (err, written, buffer) {
-                        if (err) {
-                            throw err;
-                        }
-                        bar.tick(written);
-                        file_done();
-                    });
-                }
-                else {
-                    bar.tick(data.Body.length);
-                }
-            }
-        });
-    };
-    // Starts all async fetcher tasks
-    for (var k = 0; k < fetchers_count; k++) {
-        task(k, chunks);
-    }
 }
 program
     .version('1.0.0')

@@ -7,9 +7,11 @@ It has been tested with Node.js 7.1.1.
 To use it, just run 
 
 ```bash
-multipart.js <s3://bucket/key> <outputfile> [-s <size>] [-c <accessKey>/<secretAccessKey>]
+multipart.js <s3://bucket/key> <outputfile> [-s <size>] [-c <accessKey>/<secretAccessKey>] [-t]
 ```
 The `<size>` optional parameter specifies the maximum chunk size in bytes that is fetched in parallel.
+
+The `-t` parameter runs the tool in test mode only downloading the file but not writing to disk.
 
 ## Security
 
